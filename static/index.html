@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>sambev.com</title>
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <div id="app"></div>
+    </div>
+</body>
+
+<script type="text/javascript" src="sambev.js"></script>
+<script type="text/javascript">
+    var container = document.getElementById('app');
+
+    Elm.embed(Elm.Sambev, container)
+</script>
+</html>
