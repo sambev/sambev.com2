@@ -1,9 +1,13 @@
 module Sambev where
 
-import Totals
-import StartApp.Simple
+import Effects exposing (Never, Effects)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Http
+import Json.Decode as Json
+import StartApp.Simple
+import Task
+import Totals
 
 -- Model
 type alias Model =
@@ -17,15 +21,13 @@ init =
   }
 
 -- Actions
-type Action = TotalsFetched Totals.Action
+type Action = TotalsFetched Totals.Total
 
 update : Action -> Model -> Model
 update action model =
   case action of
-    TotalsFetched totalAction ->
-      { model |
-        totals = Totals.update totalAction model.totals
-      }
+    TotalsFetched totals ->
+      Model totals
 
 
 -- View
@@ -38,7 +40,7 @@ view address model =
         , small [] [ text "i have no idea what i am doing." ]
         ]
       ]
-    , Totals.view (Signal.forwardTo address TotalsFetched) model.totals
+    , Totals.view model.totals
     ]
 
 
@@ -48,3 +50,12 @@ main =
     , update = update
     , view = view
     }
+
+
+-- Effects
+--getTotals : (Model, Effects Action)
+--getTotals =
+--  Http.get Totals.decodeTotal ("/reports/totals")
+--    |> Task.toMaybe
+--    |> Task.map TotalsFetched
+--    |> Effects.task
