@@ -1,11 +1,13 @@
 module Sambev where
 
+import Debug exposing (log)
+
 import Effects exposing (Never, Effects)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
 import Json.Decode as Json
-import StartApp.Simple
+import StartApp
 import Task
 import Totals
 
@@ -15,19 +17,25 @@ type alias Model =
   }
 
 
-init : Model
+init : (Model, Effects Action)
 init =
-  { totals = Totals.init
-  }
+  ( { totals = Totals.init
+    }
+  , getTotals
+  )
 
 -- Actions
-type Action = TotalsFetched Totals.Total
+type Action = TotalsFetched (Maybe Totals.Total)
 
-update : Action -> Model -> Model
+
+update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
     TotalsFetched totals ->
-      Model totals
+      log (toString totals)
+      ( { model | totals = Maybe.withDefault model.totals totals }
+      , Effects.none
+      )
 
 
 -- View
@@ -44,18 +52,28 @@ view address model =
     ]
 
 
-main =
-  StartApp.Simple.start
-    { model = init
+app =
+  StartApp.start
+    { init = init
     , update = update
     , view = view
+    , inputs = []
     }
 
 
+main =
+  app.html
+
+
+port tasks : Signal (Task.Task Never ())
+port tasks =
+  app.tasks
+
+
 -- Effects
---getTotals : (Model, Effects Action)
---getTotals =
---  Http.get Totals.decodeTotal ("/reports/totals")
---    |> Task.toMaybe
---    |> Task.map TotalsFetched
---    |> Effects.task
+getTotals : Effects Action
+getTotals =
+  Http.get Totals.decodeTotal ("/reports/totals")
+    |> Task.toMaybe
+    |> Task.map TotalsFetched
+    |> Effects.task
