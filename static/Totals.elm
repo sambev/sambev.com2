@@ -1,9 +1,11 @@
 module Totals where
 
 import Json.Decode as Json exposing (object7, (:=), Decoder)
+import Effects exposing (Never, Effects)
 import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Task
 
 
 -- Model
@@ -17,16 +19,23 @@ type alias Total =
   , coffeesPerDay: Float
   }
 
-init : Total
+init : (Total, Effects Action)
 init =
-  { days = 0
-  , avgPerDay = 0.0
-  , reports = 0
-  , people = 0
-  , locations = 0
-  , coffees = 0
-  , coffeesPerDay = 0.0
-  }
+  ( Total 0 0.0 0 0 0 0 0.0
+  , getTotals
+  )
+
+
+-- Actions
+type Action = Fetched (Maybe Total)
+
+update : Action -> Total -> (Total, Effects Action)
+update action model =
+  case action of
+    Fetched total ->
+      ( Maybe.withDefault model total
+      , Effects.none
+      )
 
 
 -- View
@@ -39,9 +48,8 @@ buildTotalEntry name entry =
       ]
     ]
 
-
-view : Total -> Html
-view model =
+view : Signal.Address Action -> Total -> Html
+view address model =
   div [ class "row" ]
     [ buildTotalEntry "Days" model.days
     , buildTotalEntry "Avg/Day" model.avgPerDay
@@ -52,7 +60,8 @@ view model =
     , buildTotalEntry "Coffees/Day" model.coffeesPerDay
     ]
 
--- Effects
+
+-- Helpers
 decodeTotal : Json.Decoder Total
 decodeTotal =
   object7 Total
@@ -63,3 +72,12 @@ decodeTotal =
       ("locations" := Json.int)
       ("coffees" := Json.int)
       ("coffeesPerDay" := Json.float)
+
+
+-- Effects
+getTotals : Effects Action
+getTotals =
+  Http.get decodeTotal ("/reports/totals")
+    |> Task.toMaybe
+    |> Task.map Fetched
+    |> Effects.task

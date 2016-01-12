@@ -1,7 +1,7 @@
 module Sambev where
-
 import Debug exposing (log)
 
+import Dict
 import Effects exposing (Never, Effects)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -9,33 +9,54 @@ import Http
 import Json.Decode as Json
 import StartApp
 import Task
+
 import Totals
+import Person
+
 
 -- Model
 type alias Model =
   { totals: Totals.Total
+  , person: Person.Person
   }
 
 
 init : (Model, Effects Action)
 init =
-  ( { totals = Totals.init
-    }
-  , getTotals
+  let
+    (totals, totalsFx) = Totals.init
+    (person, personFx) = Person.init "Deanna Dillard"
+  in
+  ( Model totals person
+  , Effects.batch
+    [ Effects.map TotalsFetched totalsFx
+    , Effects.map PersonFetched personFx
+    ]
   )
 
 -- Actions
-type Action = TotalsFetched (Maybe Totals.Total)
+type Action
+  = TotalsFetched Totals.Action
+  | PersonFetched Person.Action
 
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
-    TotalsFetched totals ->
-      log (toString totals)
-      ( { model | totals = Maybe.withDefault model.totals totals }
-      , Effects.none
-      )
+    TotalsFetched act ->
+      let
+        (totals, fx) = Totals.update act model.totals
+      in
+        ( Model totals model.person
+        , Effects.map TotalsFetched fx
+        )
+    PersonFetched act ->
+      let
+        (person, fx) = Person.update act model.person
+      in
+        ( Model model.totals person
+        , Effects.map PersonFetched fx
+        )
 
 
 -- View
@@ -48,7 +69,8 @@ view address model =
         , small [] [ text "i have no idea what i am doing." ]
         ]
       ]
-    , Totals.view model.totals
+    , Totals.view (Signal.forwardTo address TotalsFetched) model.totals
+    , Person.view (Signal.forwardTo address PersonFetched) model.person
     ]
 
 
@@ -70,10 +92,3 @@ port tasks =
   app.tasks
 
 
--- Effects
-getTotals : Effects Action
-getTotals =
-  Http.get Totals.decodeTotal ("/reports/totals")
-    |> Task.toMaybe
-    |> Task.map TotalsFetched
-    |> Effects.task
