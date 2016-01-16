@@ -33,7 +33,6 @@ update : Action -> Person -> (Person, Effects Action)
 update action model =
   case action of
     Fetched person ->
-      log (toString person)
       ( Maybe.withDefault model person
       , Effects.none
       )

@@ -1,5 +1,4 @@
 module Sambev where
-import Debug exposing (log)
 
 import Dict
 import Effects exposing (Never, Effects)
