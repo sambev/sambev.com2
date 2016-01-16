@@ -15,6 +15,9 @@ type TotalResponse struct {
     TotalLocations int `json:"locations"`
     TotalCoffees int `json:"coffees"`
     CoffeesPerDay float32 `json:"coffeesPerDay"`
+    PeopleList map[string]int `json:"peopleList"`
+    LocationList map[string]int `json:"locationList"`
+    ActivityList map[string]int `json:"activityList"`
 }
 
 /**
@@ -25,6 +28,7 @@ func getTotals(snapshots []Snapshot) TotalResponse {
     days := make(map[string]int)
     people := make(map[string]int)
     locations := make(map[string]int)
+    activities:= make(map[string]int)
     coffees := 0
 
     for _, snapshot := range snapshots {
@@ -48,6 +52,10 @@ func getTotals(snapshots []Snapshot) TotalResponse {
                 if err == nil {
                     coffees += amount
                 }
+            } else if question == "What are you doing?" {
+                for _, token := range response.Tokens {
+                    activities[token.Text]++
+                }
             }
         }
     }
@@ -60,6 +68,9 @@ func getTotals(snapshots []Snapshot) TotalResponse {
         AvgPerDay: float32(reports)/float32(len(days)),
         TotalCoffees: coffees,
         CoffeesPerDay: float32(coffees)/float32(len(days)),
+        PeopleList: people,
+        LocationList: locations,
+        ActivityList: activities,
     }
 }
 
